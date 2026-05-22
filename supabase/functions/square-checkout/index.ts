@@ -53,7 +53,14 @@ Deno.serve(async (req) => {
   const cents = Math.round(dollars * 100);
 
   const title = String(payload.pieceTitle ?? "").trim();
+  const pieceId = String(payload.pieceId ?? "").trim();
   const itemName = title ? `Tip for "${title}"` : "Tip for the artist";
+
+  // Carry the piece identity into Square so you can tell which piece a donation
+  // was for: a human-readable note (shown on the payment in the dashboard) and a
+  // reference_id (shown in reports/exports and queryable via the API).
+  const shortId = pieceId ? pieceId.slice(0, 8) : "";
+  const note = pieceId ? `${itemName} [piece:${shortId}]` : itemName;
 
   const base = ENV === "production"
     ? "https://connect.squareup.com"
@@ -70,6 +77,11 @@ Deno.serve(async (req) => {
       ask_for_shipping_address: true,
       redirect_url: payload.redirectUrl ? String(payload.redirectUrl) : undefined,
     },
+    // payment_note (<=500 chars) lands on the resulting Payment and is visible on
+    // the payment in the Square dashboard — this is how you tell which piece a
+    // donation was for. (We can't also pass a custom `order` here: quick_pay
+    // builds the order itself, so the two conflict.)
+    payment_note: note,
   };
 
   const res = await fetch(`${base}/v2/online-checkout/payment-links`, {

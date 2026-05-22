@@ -84,7 +84,12 @@ export function openDonate(piece) {
     status.textContent = "Taking you to secure checkout…";
     try {
       const { data, error } = await supabase.functions.invoke("square-checkout", {
-        body: { amount, pieceTitle: title, redirectUrl: window.location.origin },
+        body: {
+          amount,
+          pieceTitle: title,
+          pieceId: piece?.id ? String(piece.id) : "",
+          redirectUrl: window.location.origin,
+        },
       });
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
