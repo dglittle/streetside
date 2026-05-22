@@ -1,9 +1,23 @@
 import { supabase, isConfigured } from "./supabase.js";
 import { sampleArt } from "./sample-data.js";
+import {
+  captureKeyFromHash,
+  isAdmin,
+  logout,
+  deletePiece,
+  createPiece,
+} from "./admin.js";
+
+// Capture an admin magic-link key (#k=...) before anything renders, so the
+// fragment is scrubbed from the URL immediately on load.
+captureKeyFromHash();
 
 const galleryEl = document.getElementById("gallery");
 const presenceEl = document.getElementById("presence");
 const presenceTextEl = document.getElementById("presence-text");
+const adminBarEl = document.getElementById("admin-bar");
+
+let currentPieces = [];
 
 /** Load art pieces from Supabase, or fall back to sample data. */
 async function loadArt() {
@@ -26,6 +40,9 @@ function money(n) {
 function cardHTML(piece) {
   const link = piece.payment_link || "#";
   const img = piece.image_url || "";
+  const adminControls = isAdmin()
+    ? `<button class="btn-delete" data-delete-id="${piece.id}" title="Delete this piece">Delete</button>`
+    : "";
   return `
     <article class="card" data-piece-id="${piece.id}">
       ${img ? `<img class="card-img" src="${img}" alt="${escapeAttr(piece.title)}" loading="lazy" />` : `<div class="card-img"></div>`}
@@ -37,6 +54,7 @@ function cardHTML(piece) {
           <span class="price">${money(piece.suggested_amount)} <small>suggested tip</small></span>
           <a class="btn-tip" href="${link}" target="_blank" rel="noopener noreferrer">Tip the artist</a>
         </div>
+        ${adminControls}
       </div>
     </article>`;
 }
@@ -51,20 +69,127 @@ function escapeAttr(s) {
 }
 
 function render(pieces) {
+  currentPieces = pieces;
   if (!pieces.length) {
     galleryEl.innerHTML = `<p class="empty">No pieces yet — check back soon.</p>`;
     return;
   }
   galleryEl.innerHTML = pieces.map(cardHTML).join("");
+  if (isAdmin()) wireDeleteButtons();
 }
 
+async function reload() {
+  render(await loadArt());
+}
+
+/* ----------------------- Admin mode ----------------------- */
+
+function renderAdminBar() {
+  if (!isAdmin()) {
+    adminBarEl.hidden = true;
+    adminBarEl.innerHTML = "";
+    return;
+  }
+  if (!isConfigured) {
+    adminBarEl.hidden = false;
+    adminBarEl.innerHTML = `<span>Admin mode (connect Supabase to enable edits)</span>`;
+    return;
+  }
+  adminBarEl.hidden = false;
+  adminBarEl.innerHTML = `
+    <div class="admin-row">
+      <strong>✦ Admin mode</strong>
+      <button id="admin-add-toggle" class="btn-admin">+ Add a piece</button>
+      <button id="admin-logout" class="btn-admin ghost">Log out</button>
+    </div>
+    <form id="add-form" class="add-form" hidden>
+      <input name="title" placeholder="Title" required />
+      <input name="description" placeholder="Short description" />
+      <div class="add-form-row">
+        <input name="suggested_amount" type="number" min="0" step="1" value="5" placeholder="Suggested tip $" />
+        <input name="payment_link" placeholder="Square payment link (https://square.link/…)" />
+      </div>
+      <label class="file-label">
+        <span>Image</span>
+        <input name="image" type="file" accept="image/*" />
+      </label>
+      <div class="add-form-actions">
+        <button type="submit" class="btn-admin">Add piece</button>
+        <span id="add-status" class="add-status"></span>
+      </div>
+    </form>`;
+
+  document.getElementById("admin-logout").addEventListener("click", () => {
+    logout();
+    renderAdminBar();
+    reload();
+  });
+  const form = document.getElementById("add-form");
+  document.getElementById("admin-add-toggle").addEventListener("click", () => {
+    form.hidden = !form.hidden;
+  });
+  form.addEventListener("submit", onAddSubmit);
+}
+
+async function onAddSubmit(e) {
+  e.preventDefault();
+  const form = e.currentTarget;
+  const statusEl = document.getElementById("add-status");
+  const submitBtn = form.querySelector('button[type="submit"]');
+  const fd = new FormData(form);
+  const file = fd.get("image");
+
+  submitBtn.disabled = true;
+  statusEl.textContent = "Saving…";
+  try {
+    await createPiece({
+      title: fd.get("title"),
+      description: fd.get("description"),
+      suggested_amount: fd.get("suggested_amount"),
+      payment_link: fd.get("payment_link"),
+      file: file && file.size > 0 ? file : null,
+    });
+    statusEl.textContent = "Added ✓";
+    form.reset();
+    form.hidden = true;
+    await reload();
+  } catch (err) {
+    statusEl.textContent = "Error: " + err.message;
+  } finally {
+    submitBtn.disabled = false;
+  }
+}
+
+function wireDeleteButtons() {
+  document.querySelectorAll("[data-delete-id]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.deleteId;
+      const piece = currentPieces.find((p) => String(p.id) === String(id));
+      const name = piece ? piece.title : "this piece";
+      if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+      btn.disabled = true;
+      btn.textContent = "Deleting…";
+      try {
+        await deletePiece(id);
+        await reload();
+      } catch (err) {
+        alert("Could not delete: " + err.message);
+        btn.disabled = false;
+        btn.textContent = "Delete";
+      }
+    });
+  });
+}
+
+/* ----------------------- Live presence ----------------------- */
+
 /**
- * Live presence: each visitor joins a shared Realtime channel and tracks which
- * piece (if any) is in view. We show a global "N people here now" pill plus a
- * per-card viewer count. Presence is ephemeral — it never touches the database.
+ * Each visitor joins a shared Realtime channel and tracks which piece (if any)
+ * is in view. We show a global "N people here now" pill plus per-card counts.
+ * Presence is ephemeral — it never touches the database.
  */
 function startPresence() {
-  if (!isConfigured) return; // no realtime without Supabase
+  if (!isConfigured) return;
   const visitorId = crypto.randomUUID();
   const channel = supabase.channel("streetside-presence", {
     config: { presence: { key: visitorId } },
@@ -82,7 +207,6 @@ function startPresence() {
       }
     });
 
-  // Update which piece a visitor is "viewing" as cards scroll into view.
   const io = new IntersectionObserver(
     (entries) => {
       const visible = entries
@@ -103,7 +227,6 @@ function updatePresenceUI(visitors) {
   presenceTextEl.textContent =
     count === 1 ? "You're the only one here right now" : `${count} people here right now`;
 
-  // Per-card counts
   const byPiece = {};
   for (const v of visitors) {
     if (v.viewing) byPiece[v.viewing] = (byPiece[v.viewing] || 0) + 1;
@@ -116,7 +239,7 @@ function updatePresenceUI(visitors) {
 }
 
 (async function init() {
-  const pieces = await loadArt();
-  render(pieces);
+  renderAdminBar();
+  await reload();
   startPresence();
 })();

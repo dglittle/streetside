@@ -201,3 +201,114 @@ body {
   color: var(--muted);
   grid-column: 1 / -1;
 }
+
+/* ---------------- Admin mode ---------------- */
+.admin-bar {
+  margin-top: 28px;
+  padding: 16px 18px;
+  background: #fffaf3;
+  border: 1px solid #f0d9b8;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.admin-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.admin-row strong {
+  color: var(--accent);
+}
+
+.btn-admin {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 9px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.btn-admin:hover {
+  filter: brightness(1.07);
+}
+
+.btn-admin.ghost {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--line);
+}
+
+.add-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed #f0d9b8;
+}
+
+.add-form input[type="text"],
+.add-form input[name],
+.add-form input:not([type="file"]) {
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+
+.add-form-row {
+  display: flex;
+  gap: 10px;
+}
+
+.add-form-row input {
+  flex: 1;
+}
+
+.file-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.add-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.add-status {
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.btn-delete {
+  margin-top: 10px;
+  align-self: flex-start;
+  background: transparent;
+  color: #b91c1c;
+  border: 1px solid #f1c4c4;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-delete:hover {
+  background: #fef2f2;
+}
+
+.btn-delete:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
