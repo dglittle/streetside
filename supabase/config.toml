@@ -1,0 +1,7 @@
+project_id = "orlyyjfygshepiwqggpv"
+
+# The admin-action function does its own password check (ADMIN_SECRET), so we
+# disable Supabase's JWT gateway verification — otherwise the gateway rejects
+# the request before our code runs (the publishable key isn't a JWT).
+[functions.admin-action]
+verify_jwt = false
