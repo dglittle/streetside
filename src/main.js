@@ -99,10 +99,9 @@ function renderAdminBar() {
   adminBarEl.innerHTML = `
     <div class="admin-row">
       <strong>✦ Admin mode</strong>
-      <button id="admin-add-toggle" class="btn-admin">+ Add a piece</button>
       <button id="admin-logout" class="btn-admin ghost">Log out</button>
     </div>
-    <form id="add-form" class="add-form" hidden>
+    <form id="add-form" class="add-form">
       <input id="add-image" name="image" type="file" accept="image/*" required />
       <div class="add-form-actions">
         <button type="submit" class="btn-admin">Add image</button>
@@ -116,9 +115,6 @@ function renderAdminBar() {
     reload();
   });
   const form = document.getElementById("add-form");
-  document.getElementById("admin-add-toggle").addEventListener("click", () => {
-    form.hidden = !form.hidden;
-  });
   form.addEventListener("submit", onAddSubmit);
 }
 
@@ -145,7 +141,6 @@ async function onAddSubmit(e) {
     });
     statusEl.textContent = "Added ✓";
     form.reset();
-    form.hidden = true;
     await reload();
   } catch (err) {
     statusEl.textContent = "Error: " + err.message;
