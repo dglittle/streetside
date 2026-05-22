@@ -9,3 +9,7 @@ verify_jwt = false
 # Public donation checkout — no auth (any visitor can start a donation).
 [functions.square-checkout]
 verify_jwt = false
+
+# Public free-request (0-amount) — no auth; collects shipping + emails seller.
+[functions.free-request]
+verify_jwt = false

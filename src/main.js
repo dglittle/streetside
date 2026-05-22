@@ -7,15 +7,13 @@ import {
   deletePiece,
   createPiece,
 } from "./admin.js";
-import { openDonate } from "./donate.js";
+import { openLightbox } from "./donate.js";
 
 // Capture an admin magic-link key (#k=...) before anything renders, so the
 // fragment is scrubbed from the URL immediately on load.
 captureKeyFromHash();
 
 const galleryEl = document.getElementById("gallery");
-const presenceEl = document.getElementById("presence");
-const presenceTextEl = document.getElementById("presence-text");
 const adminBarEl = document.getElementById("admin-bar");
 
 let currentPieces = [];
@@ -34,28 +32,18 @@ async function loadArt() {
   return data?.length ? data : sampleArt;
 }
 
-function money(n) {
-  return `$${Number(n || 0).toFixed(0)}`;
-}
-
 function cardHTML(piece) {
   const img = piece.image_url || "";
+  // Image-only card: the whole, uncropped image. Clicking it opens the lightbox.
   const adminControls = isAdmin()
     ? `<button class="btn-delete" data-delete-id="${piece.id}" title="Delete this piece">Delete</button>`
     : "";
   return `
     <article class="card" data-piece-id="${piece.id}">
-      ${img ? `<img class="card-img" src="${img}" alt="${escapeAttr(piece.title)}" loading="lazy" />` : `<div class="card-img"></div>`}
-      <div class="card-body">
-        <h2 class="card-title">${escapeHTML(piece.title)}</h2>
-        <p class="card-desc">${escapeHTML(piece.description || "")}</p>
-        <p class="card-viewers" data-viewers-for="${piece.id}"></p>
-        <div class="card-foot">
-          <span class="price">${money(piece.suggested_amount)} <small>suggested tip</small></span>
-          <button class="btn-tip" data-donate-id="${piece.id}">Tip the artist</button>
-        </div>
-        ${adminControls}
-      </div>
+      ${img
+        ? `<img class="card-img" src="${img}" alt="${escapeAttr(piece.title)}" loading="lazy" data-open-id="${piece.id}" />`
+        : `<div class="card-img placeholder"></div>`}
+      ${adminControls}
     </article>`;
 }
 
@@ -75,17 +63,17 @@ function render(pieces) {
     return;
   }
   galleryEl.innerHTML = pieces.map(cardHTML).join("");
-  wireDonateButtons();
+  wireImageClicks();
   if (isAdmin()) wireDeleteButtons();
 }
 
-function wireDonateButtons() {
-  document.querySelectorAll("[data-donate-id]").forEach((btn) => {
-    btn.addEventListener("click", () => {
+function wireImageClicks() {
+  document.querySelectorAll("[data-open-id]").forEach((img) => {
+    img.addEventListener("click", () => {
       const piece = currentPieces.find(
-        (p) => String(p.id) === String(btn.dataset.donateId)
+        (p) => String(p.id) === String(img.dataset.openId)
       );
-      openDonate(piece);
+      openLightbox(piece);
     });
   });
 }
@@ -182,65 +170,7 @@ function wireDeleteButtons() {
   });
 }
 
-/* ----------------------- Live presence ----------------------- */
-
-/**
- * Each visitor joins a shared Realtime channel and tracks which piece (if any)
- * is in view. We show a global "N people here now" pill plus per-card counts.
- * Presence is ephemeral — it never touches the database.
- */
-function startPresence() {
-  if (!isConfigured) return;
-  const visitorId = crypto.randomUUID();
-  const channel = supabase.channel("streetside-presence", {
-    config: { presence: { key: visitorId } },
-  });
-
-  channel
-    .on("presence", { event: "sync" }, () => {
-      const state = channel.presenceState();
-      const visitors = Object.values(state).flat();
-      updatePresenceUI(visitors);
-    })
-    .subscribe(async (status) => {
-      if (status === "SUBSCRIBED") {
-        await channel.track({ viewing: null, at: Date.now() });
-      }
-    });
-
-  const io = new IntersectionObserver(
-    (entries) => {
-      const visible = entries
-        .filter((e) => e.isIntersecting)
-        .map((e) => e.target.dataset.pieceId);
-      if (visible.length) {
-        channel.track({ viewing: visible[0], at: Date.now() });
-      }
-    },
-    { threshold: 0.6 }
-  );
-  document.querySelectorAll(".card").forEach((c) => io.observe(c));
-}
-
-function updatePresenceUI(visitors) {
-  const count = visitors.length;
-  presenceEl.hidden = count <= 0;
-  presenceTextEl.textContent =
-    count === 1 ? "You're the only one here right now" : `${count} people here right now`;
-
-  const byPiece = {};
-  for (const v of visitors) {
-    if (v.viewing) byPiece[v.viewing] = (byPiece[v.viewing] || 0) + 1;
-  }
-  document.querySelectorAll("[data-viewers-for]").forEach((el) => {
-    const id = el.dataset.viewersFor;
-    const n = byPiece[id] || 0;
-    el.textContent = n > 0 ? `👀 ${n} looking now` : "";
-  });
-}
-
 (async function init() {
   renderAdminBar();
   await reload();
-  startPresence();
 })();

@@ -47,53 +47,11 @@ body {
   font-weight: 800;
 }
 
-.tagline {
-  margin: 6px 0 0;
-  color: var(--muted);
-  font-size: 1.05rem;
-}
-
-/* Live presence pill */
-.presence {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin: 18px 0 0;
-  padding: 6px 12px;
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  font-size: 0.9rem;
-  color: var(--muted);
-  box-shadow: var(--shadow);
-}
-
-.presence .dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: #16a34a;
-  box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.5);
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.5);
-  }
-  70% {
-    box-shadow: 0 0 0 8px rgba(22, 163, 74, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0);
-  }
-}
-
-/* Gallery grid */
+/* Gallery: masonry-style columns so full, uncropped images of any aspect
+   ratio flow naturally. */
 .gallery {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 24px;
+  column-width: 280px;
+  column-gap: 20px;
   padding: 40px 0;
 }
 
@@ -102,13 +60,14 @@ body {
 }
 
 .card {
+  position: relative;
+  break-inside: avoid;
+  margin: 0 0 20px;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   overflow: hidden;
   box-shadow: var(--shadow);
-  display: flex;
-  flex-direction: column;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -117,52 +76,17 @@ body {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05), 0 14px 32px rgba(0, 0, 0, 0.09);
 }
 
+/* Full, uncropped image — height follows the image's own aspect ratio. */
 .card-img {
-  aspect-ratio: 4 / 3;
   width: 100%;
-  object-fit: cover;
-  background: #efe9e0;
+  height: auto;
   display: block;
+  background: #efe9e0;
+  cursor: zoom-in;
 }
 
-.card-body {
-  padding: 16px 18px 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  flex: 1;
-}
-
-.card-title {
-  margin: 0;
-  font-size: 1.15rem;
-  font-weight: 700;
-}
-
-.card-desc {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.95rem;
-  flex: 1;
-}
-
-.card-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 10px;
-  gap: 12px;
-}
-
-.price {
-  font-weight: 700;
-  font-size: 1.05rem;
-}
-
-.price small {
-  font-weight: 500;
-  color: var(--muted);
-  font-size: 0.75rem;
+.card-img.placeholder {
+  aspect-ratio: 4 / 3;
 }
 
 .btn-tip {
@@ -170,31 +94,18 @@ body {
   background: var(--accent);
   color: #fff;
   text-decoration: none;
-  padding: 9px 16px;
+  padding: 11px 16px;
   border-radius: 10px;
   font-weight: 600;
   font-size: 0.95rem;
   white-space: nowrap;
+  border: none;
+  cursor: pointer;
   transition: filter 0.15s ease;
 }
 
 .btn-tip:hover {
   filter: brightness(1.07);
-}
-
-.card-viewers {
-  font-size: 0.78rem;
-  color: var(--muted);
-  min-height: 1em;
-}
-
-/* Footer */
-.site-footer {
-  border-top: 1px solid var(--line);
-  margin-top: 40px;
-  padding: 28px 0 60px;
-  color: var(--muted);
-  font-size: 0.9rem;
 }
 
 .empty {
@@ -291,10 +202,12 @@ body {
   color: var(--muted);
 }
 
+/* Delete sits on top of the image (cards are image-only now). */
 .btn-delete {
-  margin-top: 10px;
-  align-self: flex-start;
-  background: transparent;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(255, 255, 255, 0.92);
   color: #b91c1c;
   border: 1px solid #f1c4c4;
   padding: 6px 12px;
@@ -313,11 +226,12 @@ body {
   cursor: default;
 }
 
-/* ---------------- Donate modal ---------------- */
-.donate-overlay {
+
+/* ---------------- Lightbox (click an image) ---------------- */
+.lb-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(31, 27, 22, 0.5);
+  background: rgba(20, 17, 13, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -325,78 +239,64 @@ body {
   z-index: 100;
 }
 
-.donate-modal {
+.lb-modal {
   position: relative;
   background: #fff;
   border-radius: 16px;
-  padding: 28px 26px 22px;
+  overflow: hidden;
   width: 100%;
-  max-width: 360px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
-}
-
-.donate-modal h3 {
-  margin: 0;
-  font-size: 1.35rem;
-}
-
-.donate-sub {
-  margin: 4px 0 18px;
-  color: var(--muted);
-  font-size: 0.95rem;
-}
-
-.donate-close {
-  position: absolute;
-  top: 12px;
-  right: 14px;
-  background: none;
-  border: none;
-  font-size: 1.6rem;
-  line-height: 1;
-  color: var(--muted);
-  cursor: pointer;
-}
-
-.donate-presets {
+  max-width: 460px;
+  max-height: 92vh;
   display: flex;
-  gap: 10px;
-  margin-bottom: 12px;
+  flex-direction: column;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
 }
 
-.donate-presets button {
-  flex: 1;
-  padding: 12px 0;
-  border: 1px solid var(--line);
-  background: #fff;
-  border-radius: 10px;
-  font-size: 1rem;
-  font-weight: 600;
+.lb-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 2;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 1.5rem;
+  line-height: 1;
+  color: #333;
   cursor: pointer;
 }
 
-.donate-presets button.selected {
-  border-color: var(--accent);
-  background: #fff4ee;
-  color: var(--accent);
+.lb-img {
+  width: 100%;
+  height: auto;
+  max-height: 60vh;
+  object-fit: contain;
+  display: block;
+  background: #efe9e0;
 }
 
-.donate-custom {
+.lb-panel {
+  padding: 18px 20px 20px;
+}
+
+.lb-amount {
   display: flex;
   align-items: center;
   gap: 8px;
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 0 12px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
-.donate-custom span {
+.lb-amount span {
   color: var(--muted);
   font-weight: 600;
 }
 
-.donate-custom input {
+.lb-amount input {
   flex: 1;
   border: none;
   outline: none;
@@ -405,21 +305,19 @@ body {
   font-family: inherit;
 }
 
-.donate-go {
+.lb-request {
   width: 100%;
   text-align: center;
-  border: none;
-  cursor: pointer;
   font-size: 1rem;
   padding: 13px 0;
 }
 
-.donate-go:disabled {
+.lb-request:disabled {
   opacity: 0.7;
   cursor: default;
 }
 
-.donate-status {
+.lb-status {
   min-height: 1.2em;
   margin: 10px 0 0;
   font-size: 0.9rem;
@@ -427,9 +325,42 @@ body {
   text-align: center;
 }
 
-.donate-note {
-  margin: 8px 0 0;
-  font-size: 0.78rem;
+/* Free-request shipping form (shown when amount is 0) */
+.lb-ship {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--line);
+}
+
+.lb-ship-intro {
+  margin: 0 0 2px;
   color: var(--muted);
-  text-align: center;
+  font-size: 0.9rem;
+}
+
+.lb-ship input,
+.lb-ship textarea {
+  padding: 10px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+
+.lb-ship textarea {
+  min-height: 60px;
+  resize: vertical;
+}
+
+.lb-ship-row {
+  display: flex;
+  gap: 8px;
+}
+
+.lb-ship-row input {
+  flex: 1;
+  min-width: 0;
 }
