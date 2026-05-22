@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Streetside — little art, made on the street</title>
+    <meta
+      name="description"
+      content="Little art things made and sold on the street. Tip the artist with Square."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wrap">
+        <h1>streetside</h1>
+        <p class="tagline">little art things, made on the street</p>
+        <p class="presence" id="presence" hidden>
+          <span class="dot"></span><span id="presence-text"></span>
+        </p>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section id="gallery" class="gallery" aria-live="polite">
+        <p class="loading">Loading the gallery…</p>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <p>Made on the street · Tips handled securely by Square</p>
+      </div>
+    </footer>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
