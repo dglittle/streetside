@@ -103,18 +103,9 @@ function renderAdminBar() {
       <button id="admin-logout" class="btn-admin ghost">Log out</button>
     </div>
     <form id="add-form" class="add-form" hidden>
-      <input name="title" placeholder="Title" required />
-      <input name="description" placeholder="Short description" />
-      <div class="add-form-row">
-        <input name="suggested_amount" type="number" min="0" step="1" value="5" placeholder="Suggested tip $" />
-        <input name="payment_link" placeholder="Square payment link (https://square.link/…)" />
-      </div>
-      <label class="file-label">
-        <span>Image</span>
-        <input name="image" type="file" accept="image/*" />
-      </label>
+      <input id="add-image" name="image" type="file" accept="image/*" required />
       <div class="add-form-actions">
-        <button type="submit" class="btn-admin">Add piece</button>
+        <button type="submit" class="btn-admin">Add image</button>
         <span id="add-status" class="add-status"></span>
       </div>
     </form>`;
@@ -139,15 +130,18 @@ async function onAddSubmit(e) {
   const fd = new FormData(form);
   const file = fd.get("image");
 
+  if (!file || file.size === 0) {
+    statusEl.textContent = "Please choose an image.";
+    return;
+  }
+
   submitBtn.disabled = true;
-  statusEl.textContent = "Saving…";
+  statusEl.textContent = "Uploading…";
   try {
     await createPiece({
-      title: fd.get("title"),
-      description: fd.get("description"),
-      suggested_amount: fd.get("suggested_amount"),
-      payment_link: fd.get("payment_link"),
-      file: file && file.size > 0 ? file : null,
+      // Image-only: title falls back to the filename so the DB row is valid.
+      title: file.name.replace(/\.[^.]+$/, "") || "Untitled",
+      file,
     });
     statusEl.textContent = "Added ✓";
     form.reset();
