@@ -5,3 +5,7 @@ project_id = "orlyyjfygshepiwqggpv"
 # the request before our code runs (the publishable key isn't a JWT).
 [functions.admin-action]
 verify_jwt = false
+
+# Public donation checkout — no auth (any visitor can start a donation).
+[functions.square-checkout]
+verify_jwt = false

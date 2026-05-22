@@ -7,6 +7,7 @@ import {
   deletePiece,
   createPiece,
 } from "./admin.js";
+import { openDonate } from "./donate.js";
 
 // Capture an admin magic-link key (#k=...) before anything renders, so the
 // fragment is scrubbed from the URL immediately on load.
@@ -38,7 +39,6 @@ function money(n) {
 }
 
 function cardHTML(piece) {
-  const link = piece.payment_link || "#";
   const img = piece.image_url || "";
   const adminControls = isAdmin()
     ? `<button class="btn-delete" data-delete-id="${piece.id}" title="Delete this piece">Delete</button>`
@@ -52,7 +52,7 @@ function cardHTML(piece) {
         <p class="card-viewers" data-viewers-for="${piece.id}"></p>
         <div class="card-foot">
           <span class="price">${money(piece.suggested_amount)} <small>suggested tip</small></span>
-          <a class="btn-tip" href="${link}" target="_blank" rel="noopener noreferrer">Tip the artist</a>
+          <button class="btn-tip" data-donate-id="${piece.id}">Tip the artist</button>
         </div>
         ${adminControls}
       </div>
@@ -75,7 +75,19 @@ function render(pieces) {
     return;
   }
   galleryEl.innerHTML = pieces.map(cardHTML).join("");
+  wireDonateButtons();
   if (isAdmin()) wireDeleteButtons();
+}
+
+function wireDonateButtons() {
+  document.querySelectorAll("[data-donate-id]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const piece = currentPieces.find(
+        (p) => String(p.id) === String(btn.dataset.donateId)
+      );
+      openDonate(piece);
+    });
+  });
 }
 
 async function reload() {
